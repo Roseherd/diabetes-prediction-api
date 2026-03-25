@@ -277,6 +277,21 @@
             grid-template-columns: 1fr;
         }
 
+        .footer {
+            position: fixed;
+            bottom: 12px;
+            right: 16px;
+            font-size: 12px;
+            color: #999;
+            text-align: right;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #E0E0E0;
+            backdrop-filter: blur(4px);
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 20px;
@@ -288,6 +303,13 @@
 
             .form-row {
                 grid-template-columns: 1fr;
+            }
+
+            .footer {
+                font-size: 10px;
+                bottom: 8px;
+                right: 8px;
+                padding: 4px 8px;
             }
         }
     </style>
@@ -501,5 +523,9 @@
             }
         });
     </script>
+
+    <div class="footer">
+        Developed by<br>Richard Addo-Owusu<br>PharmD Candidate
+    </div>
 </body>
 </html>
