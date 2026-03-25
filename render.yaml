@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: diabetes-api
+    runtime: docker
+    region: oregon
+    plan: free
+    
+    # Build configuration
+    dockerfilePath: ./Dockerfile
+    docker:
+      command: python -m uvicorn main:app --host 0.0.0.0 --port 8000
+    
+    # Expose port
+    envVars:
+      - key: PORT
+        value: 8000
+    
+    # Health check
+    healthCheckPath: /health
+    
+    # Auto-deploy on git push
+    autoDeploy: true
+    
+    # Environment
+    branch: main
