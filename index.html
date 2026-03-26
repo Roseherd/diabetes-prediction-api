@@ -87,6 +87,43 @@
             color: #999;
         }
 
+        .input-with-unit {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .input-with-unit input {
+            flex: 1;
+        }
+
+        .input-with-unit select {
+            flex: 0.5;
+            min-width: 80px;
+        }
+
+        .bmi-output {
+            background: #E3F2FD;
+            border: 2px solid #2196F3;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 16px;
+            color: #1976D2;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 20px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bmi-output.placeholder {
+            color: #999;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
         .button-container {
             margin-top: 30px;
             display: flex;
@@ -382,20 +419,50 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="bmi">BMI (kg/m²)</label>
-                    <input type="number" id="bmi" name="bmi" placeholder="e.g., 25.5" min="0" max="100" step="0.1" required>
+                    <label for="height">Height</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="height" name="height" placeholder="e.g., 70" min="0" step="0.1" required>
+                        <select id="height_unit" name="height_unit" required>
+                            <option value="inches">inches</option>
+                            <option value="centimeters">cm</option>
+                        </select>
+                    </div>
                 </div>
 
+                <div class="form-group">
+                    <label for="weight">Weight</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="weight" name="weight" placeholder="e.g., 180" min="0" step="0.1" required>
+                        <select id="weight_unit" name="weight_unit" required>
+                            <option value="pounds">lbs</option>
+                            <option value="kilograms">kg</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Calculated BMI (kg/m²)</label>
+                <div class="bmi-output placeholder" id="bmi_output">
+                    Enter height and weight to calculate BMI
+                </div>
+            </div>
+
+            <div class="form-row">
                 <div class="form-group">
                     <label for="HbA1c_level">HbA1c Level (%)</label>
                     <input type="number" id="HbA1c_level" name="HbA1c_level" placeholder="e.g., 5.8" min="0" max="15" step="0.1" required>
                 </div>
-            </div>
 
-            <div class="form-row full">
                 <div class="form-group">
-                    <label for="blood_glucose_level">Blood Glucose Level (mg/dL)</label>
-                    <input type="number" id="blood_glucose_level" name="blood_glucose_level" placeholder="e.g., 120" min="0" max="500" step="1" required>
+                    <label for="blood_glucose_level">Blood Glucose</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="blood_glucose_level" name="blood_glucose_level" placeholder="e.g., 120" min="0" max="2000" step="0.1" required>
+                        <select id="blood_glucose_unit" name="blood_glucose_unit" required>
+                            <option value="mg/dL">mg/dL</option>
+                            <option value="mmol/L">mmol/L</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -439,6 +506,78 @@
         const errorDiv = document.getElementById('error');
         const successDiv = document.getElementById('success');
 
+        const heightInput = document.getElementById('height');
+        const heightUnit = document.getElementById('height_unit');
+        const weightInput = document.getElementById('weight');
+        const weightUnit = document.getElementById('weight_unit');
+        const bloodGlucoseUnit = document.getElementById('blood_glucose_unit');
+        const bmiOutput = document.getElementById('bmi_output');
+
+        // Unit placeholders
+        const placeholders = {
+            height: {
+                inches: 'e.g., 70',
+                centimeters: 'e.g., 178'
+            },
+            weight: {
+                pounds: 'e.g., 180',
+                kilograms: 'e.g., 82'
+            },
+            blood_glucose: {
+                'mg/dL': 'e.g., 120',
+                'mmol/L': 'e.g., 6.7'
+            }
+        };
+
+        // Update placeholders based on unit selection
+        heightUnit.addEventListener('change', () => {
+            heightInput.placeholder = placeholders.height[heightUnit.value];
+        });
+
+        weightUnit.addEventListener('change', () => {
+            weightInput.placeholder = placeholders.weight[weightUnit.value];
+        });
+
+        bloodGlucoseUnit.addEventListener('change', () => {
+            document.getElementById('blood_glucose_level').placeholder = placeholders.blood_glucose[bloodGlucoseUnit.value];
+        });
+
+        // Calculate BMI when height or weight changes
+        function calculateBMI() {
+            const height = parseFloat(heightInput.value);
+            const weight = parseFloat(weightInput.value);
+
+            if (!height || !weight || height <= 0 || weight <= 0) {
+                bmiOutput.textContent = 'Enter height and weight to calculate BMI';
+                bmiOutput.classList.add('placeholder');
+                return;
+            }
+
+            // Convert to metric if needed
+            let heightCM = height;
+            let weightKG = weight;
+
+            if (heightUnit.value === 'inches') {
+                heightCM = height * 2.54;
+            }
+
+            if (weightUnit.value === 'pounds') {
+                weightKG = weight * 0.453592;
+            }
+
+            // Calculate BMI: weight (kg) / (height (m))^2
+            const heightM = heightCM / 100;
+            const bmi = weightKG / (heightM * heightM);
+
+            bmiOutput.textContent = bmi.toFixed(1);
+            bmiOutput.classList.remove('placeholder');
+        }
+
+        heightInput.addEventListener('input', calculateBMI);
+        heightUnit.addEventListener('change', calculateBMI);
+        weightInput.addEventListener('input', calculateBMI);
+        weightUnit.addEventListener('change', calculateBMI);
+
         function showError(message) {
             errorDiv.textContent = message;
             errorDiv.classList.add('show');
@@ -480,9 +619,13 @@
                 hypertension: parseInt(formData.get('hypertension')),
                 heart_disease: parseInt(formData.get('heart_disease')),
                 smoking_history: formData.get('smoking_history'),
-                bmi: parseFloat(formData.get('bmi')),
+                height: parseFloat(formData.get('height')),
+                height_unit: formData.get('height_unit'),
+                weight: parseFloat(formData.get('weight')),
+                weight_unit: formData.get('weight_unit'),
                 HbA1c_level: parseFloat(formData.get('HbA1c_level')),
-                blood_glucose_level: parseInt(formData.get('blood_glucose_level'))
+                blood_glucose_level: parseFloat(formData.get('blood_glucose_level')),
+                blood_glucose_unit: formData.get('blood_glucose_unit')
             };
 
             // Show loading

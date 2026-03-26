@@ -65,14 +65,18 @@ except Exception as e:
 
 class PredictionRequest(BaseModel):
     """Schema for prediction request"""
-    gender: str = Field(..., description="Gender (e.g., 'Male', 'Female', 'Other')")
+    gender: str = Field(..., description="Gender (Male or Female)")
     age: float = Field(..., ge=0, le=120, description="Age in years (0-120)")
     hypertension: int = Field(..., ge=0, le=1, description="Hypertension status (0 or 1)")
     heart_disease: int = Field(..., ge=0, le=1, description="Heart disease status (0 or 1)")
     smoking_history: str = Field(..., description="Smoking history category")
-    bmi: float = Field(..., ge=10, le=100, description="Body Mass Index (10-100)")
+    height: float = Field(..., gt=0, description="Height value")
+    height_unit: str = Field(..., description="Height unit (inches or centimeters)")
+    weight: float = Field(..., gt=0, description="Weight value")
+    weight_unit: str = Field(..., description="Weight unit (pounds or kilograms)")
     HbA1c_level: float = Field(..., ge=4, le=10, description="HbA1c level (4-10)")
-    blood_glucose_level: int = Field(..., ge=80, le=300, description="Blood glucose level (80-300)")
+    blood_glucose_level: float = Field(..., gt=0, description="Blood glucose level")
+    blood_glucose_unit: str = Field(..., description="Blood glucose unit (mg/dL or mmol/L)")
 
     class Config:
         json_schema_extra = {
@@ -82,9 +86,13 @@ class PredictionRequest(BaseModel):
                 "hypertension": 0,
                 "heart_disease": 0,
                 "smoking_history": "never",
-                "bmi": 25.5,
+                "height": 70,
+                "height_unit": "inches",
+                "weight": 180,
+                "weight_unit": "pounds",
                 "HbA1c_level": 5.8,
-                "blood_glucose_level": 120
+                "blood_glucose_level": 120,
+                "blood_glucose_unit": "mg/dL"
             }
         }
 
@@ -114,6 +122,79 @@ class ModelInfo(BaseModel):
 # UTILITY FUNCTIONS
 # ============================================================================
 
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
+def convert_height_to_cm(height: float, unit: str) -> float:
+    """
+    Convert height to centimeters
+    
+    Args:
+        height: Height value
+        unit: Unit (inches or centimeters)
+        
+    Returns:
+        Height in centimeters
+    """
+    if unit.lower() == "inches":
+        return height * 2.54
+    elif unit.lower() == "centimeters":
+        return height
+    else:
+        raise ValueError(f"Invalid height unit: {unit}")
+
+def convert_weight_to_kg(weight: float, unit: str) -> float:
+    """
+    Convert weight to kilograms
+    
+    Args:
+        weight: Weight value
+        unit: Unit (pounds or kilograms)
+        
+    Returns:
+        Weight in kilograms
+    """
+    if unit.lower() == "pounds":
+        return weight * 0.453592
+    elif unit.lower() == "kilograms":
+        return weight
+    else:
+        raise ValueError(f"Invalid weight unit: {unit}")
+
+def calculate_bmi(height_cm: float, weight_kg: float) -> float:
+    """
+    Calculate BMI from height (cm) and weight (kg)
+    
+    Args:
+        height_cm: Height in centimeters
+        weight_kg: Weight in kilograms
+        
+    Returns:
+        BMI value
+    """
+    height_m = height_cm / 100
+    bmi = weight_kg / (height_m ** 2)
+    return bmi
+
+def convert_blood_glucose_to_mg_dl(glucose: float, unit: str) -> float:
+    """
+    Convert blood glucose to mg/dL
+    
+    Args:
+        glucose: Blood glucose value
+        unit: Unit (mg/dL or mmol/L)
+        
+    Returns:
+        Blood glucose in mg/dL
+    """
+    if unit.lower() == "mg/dl":
+        return glucose
+    elif unit.lower() == "mmol/l":
+        return glucose * 18.018
+    else:
+        raise ValueError(f"Invalid blood glucose unit: {unit}")
+
 def preprocess_input(input_data: PredictionRequest) -> np.ndarray:
     """
     Preprocess input data for prediction
@@ -126,6 +207,23 @@ def preprocess_input(input_data: PredictionRequest) -> np.ndarray:
     """
     # Create a dictionary with the input data
     data_dict = input_data.dict()
+    
+    # Convert height to cm and weight to kg, then calculate BMI
+    try:
+        height_cm = convert_height_to_cm(data_dict['height'], data_dict['height_unit'])
+        weight_kg = convert_weight_to_kg(data_dict['weight'], data_dict['weight_unit'])
+        bmi = calculate_bmi(height_cm, weight_kg)
+        data_dict['bmi'] = bmi
+        
+        # Convert blood glucose to mg/dL
+        blood_glucose_mg_dl = convert_blood_glucose_to_mg_dl(
+            data_dict['blood_glucose_level'], 
+            data_dict['blood_glucose_unit']
+        )
+        data_dict['blood_glucose_level'] = blood_glucose_mg_dl
+        
+    except ValueError as e:
+        raise ValueError(f"Conversion error: {e}")
     
     # Encode categorical features
     try:
